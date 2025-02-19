@@ -51,5 +51,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         sleep(Duration::from_millis(100)).await;
     }
 
+    // Gracefully close the connection by sending a close message.
+    write.close().await?;
+    println!("Connection closed gracefully.");
+
     Ok(())
 }

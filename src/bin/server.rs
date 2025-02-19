@@ -35,18 +35,27 @@ async fn handle_connection(
     while let Some(msg) = read.next().await {
         match msg {
             Ok(message) => {
-                if let Ok(text) = message.into_text() {
-                    match serde_json::from_str::<ThreatEvent>(&text) {
-                        Ok(event) => {
-                            println!("Received threat event: {:?}", event);
-                            // Decide on a response (e.g., isolate the endpoint).
-                            let response = ResponseAction {
-                                action: "isolate".to_string(),
-                            };
-                            let json = serde_json::to_string(&response)?;
-                            write.send(Message::Text(json)).await?;
+                match message {
+                    Message::Text(text) => {
+                        match serde_json::from_str::<ThreatEvent>(&text) {
+                            Ok(event) => {
+                                println!("Received threat event: {:?}", event);
+                                // Decide on a response (e.g., isolate the endpoint).
+                                let response = ResponseAction {
+                                    action: "isolate".to_string(),
+                                };
+                                let json = serde_json::to_string(&response)?;
+                                write.send(Message::Text(json)).await?;
+                            }
+                            Err(e) => eprintln!("Failed to parse threat event: {}", e),
                         }
-                        Err(e) => eprintln!("Failed to parse threat event: {}", e),
+                    }
+                    Message::Close(frame) => {
+                        println!("Received close frame: {:?}", frame);
+                        break;
+                    }
+                    _ => {
+                        println!("Received non-text message: {:?}", message);
                     }
                 }
             }
